@@ -1,0 +1,54 @@
+input.bbcbutton {
+  font-family: arial, sans-serif;
+  font-size: 8pt;
+  border: 1px solid #000000;
+  padding: 2px;
+  margin-right: 2px;
+  margin-bottom: 2px;
+}
+
+fieldset {
+  border-color: #000000;
+  border-style: solid;
+  border-width: 1px;
+}
+
+fieldset legend {
+  font-size: 8pt; 
+  font-family: arial, sans-serif;
+}
+
+input.clicksmiley {
+  padding-right: 1px;
+  padding-bottom: 1px;
+  border-width: 0;
+  padding: 0;
+  background-color: transparent;
+}
+
+input.clicksmiley:active {
+  padding-right:  0px;
+  padding-bottom: 0px;
+  padding-left:   1px;
+  padding-top:    1px;
+}
+
+.sizepick_td {
+  font-family: arial, sans-serif;
+  border: 1px solid #CCCCCC;
+  padding: 3px;
+  max-width: 75px;
+  clip: rect(0px,75px,auto,0px);
+  overflow: hidden;
+  white-space: nowrap;
+  cursor: pointer;
+}
+pre.code {
+  border: 1px dotted #cccccc;
+  background-color: #F0F0F0;
+  padding: 10px;
+  white-space: nowrap;
+  color: #00AA00;
+  font-family: deja vu sans mono, courier new, monospace;
+}
+
