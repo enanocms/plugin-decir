@@ -40,12 +40,26 @@ function decir_early_init(&$paths, &$session)
   $paths->create_namespace('DecirPost',  $paths->nslist['Special'] . 'Forum/Post/');
   $paths->create_namespace('DecirTopic', $paths->nslist['Special'] . 'Forum/Topic/');
   
+  // Decir's ACL rules
+  
   $session->register_acl_type('decir_see_forum',  AUTH_ALLOW, 'See forum in index', Array('read'),             'DecirForum');
   $session->register_acl_type('decir_view_forum', AUTH_ALLOW, 'View forum',         Array('decir_see_forum'),  'DecirForum');
   $session->register_acl_type('decir_post',       AUTH_ALLOW, 'Post new topics',    Array('decir_view_forum'), 'DecirForum');
   $session->register_acl_type('decir_reply',      AUTH_ALLOW, 'Reply to topics',    Array('decir_post'),       'DecirTopic');
   $session->register_acl_type('decir_edit_own',   AUTH_ALLOW, 'Edit own posts',     Array('decir_post'),       'DecirPost');
   $session->register_acl_type('decir_edit_other', AUTH_DISALLOW, 'Edit others\' posts', Array('decir_post'),   'DecirPost');
+  $session->register_acl_type('decir_delete_own_post_soft', AUTH_ALLOW, 'Delete own posts (soft)', Array('decir_edit_own'), 'DecirPost');
+  $session->register_acl_type('decir_delete_own_post_hard', AUTH_DISALLOW, 'Delete own posts (hard)', Array('decir_delete_own_post_soft'), 'DecirPost');
+  $session->register_acl_type('decir_delete_other_post_soft', AUTH_DISALLOW, 'Delete others\' posts (soft)', Array('decir_edit_other'), 'DecirPost');
+  $session->register_acl_type('decir_delete_other_post_hard', AUTH_DISALLOW, 'Delete others\' posts (hard)', Array('decir_delete_other_post_soft'), 'DecirPost');
+  $session->register_acl_type('decir_undelete_own_post', AUTH_DISALLOW, 'Undelete own posts', Array('decir_edit_own'), 'DecirPost');
+  $session->register_acl_type('decir_undelete_other_post', AUTH_DISALLOW, 'Undelete others\' posts', Array('decir_edit_other'), 'DecirPost');
+  $session->register_acl_type('decir_undelete_own_topic', AUTH_DISALLOW, 'Undelete own topics', Array('read'), 'DecirTopic');
+  $session->register_acl_type('decir_undelete_other_topic', AUTH_DISALLOW, 'Undelete others\' topics', Array('read'), 'DecirTopic');
+  $session->register_acl_type('decir_see_deleted_post', AUTH_ALLOW, 'See placeholders for deleted posts', Array('read'), 'Special|DecirPost|DecirTopic|DecirForum');
+  $session->register_acl_type('decir_see_deleted_post_full', AUTH_DISALLOW, 'Read the full contents of deleted posts', Array('decir_see_deleted_post'), 'Special|DecirPost|DecirTopic|DecirForum');
+  $session->register_acl_type('decir_see_deleted_topic', AUTH_ALLOW, 'See placeholders for deleted topics', Array('read'), 'DecirTopic|DecirForum');
+  $session->register_acl_type('decir_see_deleted_topic_full', AUTH_DISALLOW, 'Read the full contents of deleted topics', Array('decir_see_deleted_topic'), 'DecirTopic|DecirForum');
 }
 
 function page_Special_Forum()

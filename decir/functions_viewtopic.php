@@ -93,7 +93,9 @@ class DecirPostbit
             <span class="menuclear"></span>
             {USER_TITLE}<br />
             <br />
+            <!-- BEGIN user_is_registered -->
             Joined: {REG_TIME}
+            <!-- END user_is_registered -->
             <!-- BEGIN whos_online_support -->
               <br />
               <!-- BEGIN user_is_online -->
@@ -133,6 +135,11 @@ class DecirPostbit
   {
     global $db, $session, $paths, $template, $plugins; // Common objects
     global $whos_online;
+    
+    if ( $row['deleted'] == 1 && !$session->get_permissions('decir_see_deleted_post') )
+    {
+      return '';
+    }
     
     $poster_name = ( $row['poster_id'] == 1 ) ? $row['poster_name'] : $row['username'];
     $datetime = date('F d, Y h:i a', $row['timestamp']);
@@ -201,13 +208,16 @@ class DecirPostbit
     {
       $who_support = false;
     }
+    
+    // die('<pre>' . print_r($session, true) . '</pre>');
+    
     $this->parser->assign_bool(Array(
         'whos_online_support' => $who_support,
         'user_is_online' => $user_online,
         'post_edited' => ( $row['edit_count'] > 0 ),
         'post_deleted' => ( $row['post_deleted'] == 1 ),
-        // FIXME: This should check something on ACLs
-        'show_post' => ( $row['post_deleted'] != 1 || $session->user_level >= USER_LEVEL_MOD )
+        'show_post' => ( $session->get_permissions('decir_see_deleted_post_full') || $row['post_deleted'] != 1 ),
+        'user_is_registered' => ( $row['poster_id'] > 1 )
       ));
     return $this->parser->run();
   }

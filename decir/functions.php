@@ -210,14 +210,18 @@ function decir_delete_topic($topic_id, $del_reason, $unlink = false)
     return false;
   
   // Obtain a list of posts in the topic
-  $q = $db->sql_query('SELECT post_id FROM '.table_prefix.'decir_posts WHERE topic_id = ' . $topic_id . ';');
+  $q = $db->sql_query('SELECT post_id, post_deleted FROM '.table_prefix.'decir_posts WHERE topic_id = ' . $topic_id . ';');
   if ( !$q )
     $db->_die('Decir functions.php in decir_delete_topic()');
   if ( $db->numrows() < 1 )
     return false;
   $posts = array();
+  $del_count = 0;
   while ( $row = $db->fetchrow() )
   {
+    if ( $row['post_deleted'] == 1 )
+      // Don't decrement the post count for deleted posts
+      $del_count++;
     $posts[] = $row['post_id'];
   }
   
@@ -252,7 +256,7 @@ function decir_delete_topic($topic_id, $del_reason, $unlink = false)
   }
   
   // Update forum stats
-  $post_count = count($posts);
+  $post_count = count($posts) - $del_count;
   $q = $db->sql_query('UPDATE '.table_prefix."decir_forums SET num_topics = num_topics - 1, num_posts = num_posts - $post_count WHERE forum_id = $forum_id;");
   if ( !$q )
     $db->_die('Decir functions.php in decir_delete_topic()');
@@ -358,14 +362,18 @@ function decir_restore_topic($topic_id)
     return false;
   
   // Obtain a list of posts in the topic
-  $q = $db->sql_query('SELECT post_id FROM '.table_prefix.'decir_posts WHERE topic_id = ' . $topic_id . ';');
+  $q = $db->sql_query('SELECT post_id, post_deleted FROM '.table_prefix.'decir_posts WHERE topic_id = ' . $topic_id . ';');
   if ( !$q )
     $db->_die('Decir functions.php in decir_delete_topic()');
   if ( $db->numrows() < 1 )
     return false;
   $posts = array();
+  $del_count = 0;
   while ( $row = $db->fetchrow() )
   {
+    if ( $row['post_deleted'] == 1 )
+      // Don't decrement the post count for deleted posts
+      $del_count++;
     $posts[] = $row['post_id'];
   }
   
@@ -379,7 +387,7 @@ function decir_restore_topic($topic_id)
   $q = $db->sql_query('UPDATE ' . table_prefix . "decir_topics SET topic_deleted = 0, topic_deletor = NULL, topic_delete_reason = NULL WHERE topic_id = $topic_id;");
   
   // Update forum stats
-  $post_count = count($posts);
+  $post_count = count($posts) - $del_count;
   $q = $db->sql_query('UPDATE '.table_prefix."decir_forums SET num_topics = num_topics + 1, num_posts = num_posts + $post_count WHERE forum_id = $forum_id;");
   if ( !$q )
     $db->_die('Decir functions.php in decir_restore_topic()');

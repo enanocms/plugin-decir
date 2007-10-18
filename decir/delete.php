@@ -40,7 +40,8 @@ $db->free_result();
 
 $tid = intval($row['topic_id']);
 
-$acl_type = ( $row['poster_id'] == $session->user_id && $session->user_logged_in ) ? 'decir_edit_own' : 'decir_edit_other';
+$own_post = ( $row['poster_id'] == $session->user_id && $session->user_logged_in );
+$acl_type = ( $own_post ) ? 'decir_edit_own' : 'decir_edit_other';
   
 $post_perms = $session->fetch_page_acl(strval($pid), 'DecirPost');
 if ( !$post_perms->get_permissions($acl_type) )
@@ -53,6 +54,15 @@ if ( isset($_GET['act']) && $_GET['act'] == 'submit' )
 {
   if ( isset($_POST['do']['delete']) )
   {
+    // Check permissions (of course!)
+    $acl_type = ( $own_post
+                  ? ( $_POST['delete_method'] == 'hard' ? 'decir_delete_own_post_hard'   : 'decir_delete_own_post_soft' )
+                  : ( $_POST['delete_method'] == 'hard' ? 'decir_delete_other_post_hard' : 'decir_delete_other_post_soft' )
+                );
+    if ( !$post_perms->get_permissions($acl_type) )
+    {
+      die_friendly('Error', '<p>You do not have access to perform this type of deletion on this post.</p>');
+    }
     // Nuke it
     $result = decir_delete_post($pid, $_POST['edit_reason'], ( $_POST['delete_method'] == 'hard' ));
     if ( $result )

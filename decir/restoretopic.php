@@ -23,7 +23,7 @@ if ( strval(intval($tid)) !== $tid )
 $tid = intval($tid);
 
 // Obtain topic info
-$q = $db->sql_query('SELECT t.forum_id, t.topic_id, t.topic_deleted, t.topic_deletor, t.topic_delete_reason, u.username AS deletor FROM '.table_prefix.'decir_topics AS t
+$q = $db->sql_query('SELECT t.forum_id, t.topic_id, t.topic_deleted, t.topic_deletor, t.topic_starter, t.topic_delete_reason, u.username AS deletor FROM '.table_prefix.'decir_topics AS t
                        LEFT JOIN '.table_prefix.'users AS u
                          ON ( u.user_id = t.topic_deletor OR t.topic_deletor IS NULL )
                        WHERE t.topic_id='.$tid.';');
@@ -40,12 +40,10 @@ $db->free_result();
 
 $tid = intval($row['topic_id']);
 
-// $acl_type = ( $row['poster_id'] == $session->user_id && $session->user_logged_in ) ? 'decir_edit_own' : 'decir_edit_other';
+$acl_type = ( $row['topic_starter'] == $session->user_id && $session->user_logged_in ) ? 'decir_undelete_own_topic' : 'decir_undelete_other_topic';
 
-// FIXME: This will eventually use an ACL rule
-  
 $post_perms = $session->fetch_page_acl(strval($pid), 'DecirPost');
-if ( $session->user_level < USER_LEVEL_MOD ) // ( !$post_perms->get_permissions($acl_type) )
+if ( !$post_perms->get_permissions($acl_type) )
 {
   die_friendly('Error', '<p>You do not have permission to restore this topic.</p>');
 }

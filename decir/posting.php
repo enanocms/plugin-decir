@@ -77,6 +77,16 @@ if ( isset($_GET['act']) && $_GET['act'] == 'post' )
     if ( !$parms['authorized'] )
       $errors[] = 'Invalid authorization key';
     
+    // If the user isn't logged in, check the CAPTCHA code
+    if ( !$session->user_logged_in )
+    {
+      $captcha_hash = $_POST['captcha_hash'];
+      $captcha_code = $_POST['captcha_code'];
+      $real_code = $session->get_captcha($captcha_hash);
+      if ( $real_code != $captcha_code )
+        $errors[] = 'The confirmation code you entered was incorrect.';
+    }
+    
     if ( sizeof($errors) < 1 )
     {
       // Collect other options
@@ -137,7 +147,7 @@ if ( $mode == 'reply' || $mode == 'quote' )
   {
     
     /**
-     * @TODO: validate read permissions
+     * @FIXME: validate read permissions
      */
     
     $post_id = intval($paths->getParam(2));
@@ -288,6 +298,14 @@ echo '<br />
 echo '<div class="tblholder">
         <table border="0" cellspacing="1" cellpadding="4">';
 echo '<tr><td class="row2">Post subject:</td><td class="row1"><input name="subject" type="text" size="50" style="width: 100%;" value="' . $subject . '" /></td>';
+if ( !$session->user_logged_in )
+{
+  $hash = $session->make_captcha();
+  $captcha_url = makeUrlNS('Special', 'Captcha/' . $hash);
+  $captcha_img = "<img alt=\"If you cannot read this image please contact the site administrator for assistance.\" src=\"$captcha_url\" onclick=\"this.src=this.src+'/a';\" style=\"cursor: pointer;\" />";
+  echo '<tr><td class="row2" rowspan="2">Image verification:</td><td class="row1">' . $captcha_img . '</td></tr>';
+  echo '<tr><td class="row1">Please input the code you see in the image: <input type="hidden" name="captcha_hash" value="' . $hash . '" /><input type="text" name="captcha_code" size="8" /></td></tr>';
+}
 echo '<tr><td class="row3" colspan="2">';
 echo '<textarea name="post_text" class="bbcode" rows="20" cols="80">' . $message . '</textarea>';
 echo '</td></tr>';
