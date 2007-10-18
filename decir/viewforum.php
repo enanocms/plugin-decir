@@ -36,7 +36,7 @@ $sort_column = ( isset($_GET['sort_column']) && in_array($_GET['sort_column'], a
 $sort_dir    = ( isset($_GET['sort_dir'])    && in_array($_GET['sort_dir'],    array('ASC', 'DESC')) ) ? $_GET['sort_dir'] : 'DESC';
 
 $q = $db->sql_query('SELECT t.topic_id,t.topic_title,t.topic_type,t.topic_icon,
-                     COUNT(h.hit_id) AS num_views,t.topic_starter AS starter_id, u.username AS topic_starter,
+                     t.num_views,t.topic_starter AS starter_id, u.username AS topic_starter,
                      p.poster_name AS last_post_name, p.timestamp AS last_post_time, t.topic_deleted, u2.username AS deletor,
                      t.topic_delete_reason
                        FROM '.table_prefix.'decir_topics AS t
@@ -75,6 +75,8 @@ if ( $row = $db->fetchrow() )
     $i++;
     if ( $last_row['topic_id'] != $row['topic_id'] || $i == $db->numrows() )
     {
+      if ( $num_replies < 0 )
+        $num_replies = 0;
       if ( $last_row['topic_deleted'] == 1 )
       {
         $thread_link = '';

@@ -13,15 +13,6 @@
  */
 
 /**
- * Prints out breadcrumbs.
- */
- 
-function decir_breadcrumbs()
-{
-  // placeholder
-}
-
-/**
  * Inserts a post in reply to a topic. Does NOT check any type of authorization at all.
  * @param int Topic ID
  * @param string Post subject
@@ -117,10 +108,12 @@ function decir_edit_post($post_id, $subject, $message, $reason)
   $post_text = bbcode_inject_uid($message, $bbcode_uid);
   $post_text = $db->escape($post_text);
   
-  $q = $db->sql_query('UPDATE '.table_prefix."decir_posts SET edit_count = edit_count + 1, edit_reason='$edit_reason', post_subject='$post_subject', last_edited_by=$last_edited_by WHERE post_id=$post_id;");
+  // grace period: if the user is editing his/her own post 10 minutes or less after they originally submitted it, don't mark it as edited
+  $grace = time() - ( 10 * 60 );
+  $q = $db->sql_query('UPDATE '.table_prefix."decir_posts SET post_subject='$post_subject', edit_count = edit_count + 1, edit_reason='$edit_reason', last_edited_by=$last_edited_by WHERE post_id=$post_id AND timestamp < $grace;");
   if ( !$q )
     $db->_die('Decir functions.php in decir_edit_post()');
-  
+
   $q = $db->sql_query('UPDATE '.table_prefix."decir_posts_text SET post_text='$post_text' WHERE post_id=$post_id;");
   if ( !$q )
     $db->_die('Decir functions.php in decir_edit_post()');
@@ -169,7 +162,7 @@ function decir_delete_post($post_id, $del_reason, $for_real = false)
   if ( $row['post_id'] == $post_id )
   {
     // first post in the thread
-    return decir_delete_topic($topic_id, $del_reason);
+    return decir_delete_topic($topic_id, $del_reason, $for_real);
   }
   
   $del_reason = $db->escape($del_reason);
@@ -350,6 +343,49 @@ function decir_restore_post($post_id)
     return true;
   }
   return false;
+}
+
+/**
+ * Un-deletes a topic so that the public can see it.
+ * @param int Topic ID
+ */
+
+function decir_restore_topic($topic_id)
+{
+  global $db, $session, $paths, $template, $plugins; // Common objects
+  
+  if ( !is_int($topic_id) )
+    return false;
+  
+  // Obtain a list of posts in the topic
+  $q = $db->sql_query('SELECT post_id FROM '.table_prefix.'decir_posts WHERE topic_id = ' . $topic_id . ';');
+  if ( !$q )
+    $db->_die('Decir functions.php in decir_delete_topic()');
+  if ( $db->numrows() < 1 )
+    return false;
+  $posts = array();
+  while ( $row = $db->fetchrow() )
+  {
+    $posts[] = $row['post_id'];
+  }
+  
+  // Obtain forum ID
+  $q = $db->sql_query('SELECT forum_id FROM '.table_prefix."decir_topics WHERE topic_id = $topic_id;");
+  if ( !$q )
+    $db->_die('Decir functions.php in decir_restore_topic()');
+  list($forum_id) = $db->fetchrow_num();
+  $db->free_result();
+  
+  $q = $db->sql_query('UPDATE ' . table_prefix . "decir_topics SET topic_deleted = 0, topic_deletor = NULL, topic_delete_reason = NULL WHERE topic_id = $topic_id;");
+  
+  // Update forum stats
+  $post_count = count($posts);
+  $q = $db->sql_query('UPDATE '.table_prefix."decir_forums SET num_topics = num_topics + 1, num_posts = num_posts + $post_count WHERE forum_id = $forum_id;");
+  if ( !$q )
+    $db->_die('Decir functions.php in decir_restore_topic()');
+  decir_update_forum_stats($forum_id);
+  
+  return true;
 }
 
 ?>

@@ -86,6 +86,9 @@ function page_Special_Forum()
     case 'delete':
       require('delete.php');
       break;
+    case 'restoretopic':
+      require('restoretopic.php');
+      break;
   }
   
   chdir($curdir);
