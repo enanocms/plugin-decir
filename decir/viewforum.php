@@ -79,9 +79,8 @@ if ( $row = $db->fetchrow() )
         $num_replies = 0;
       if ( $last_row['topic_deleted'] == 1 )
       {
-        $thread_link = '';
-        // FIXME: This will be controlled by an ACL rule
-        if ( $session->user_level >= USER_LEVEL_MOD )
+        $thread_link = '&lt;Deleted&gt;';
+        if ( $session->get_permissions('decir_see_deleted_topic_full') )
         {
           $thread_link = '<b><a class="wikilink-nonexistent" href="' . makeUrlNS('DecirTopic', $last_row['topic_id']) . '">' . $last_row['topic_title'] . '</a></b>';
         }

@@ -59,7 +59,7 @@ function decir_early_init(&$paths, &$session)
   $session->register_acl_type('decir_see_deleted_post', AUTH_ALLOW, 'See placeholders for deleted posts', Array('read'), 'Special|DecirPost|DecirTopic|DecirForum');
   $session->register_acl_type('decir_see_deleted_post_full', AUTH_DISALLOW, 'Read the full contents of deleted posts', Array('decir_see_deleted_post'), 'Special|DecirPost|DecirTopic|DecirForum');
   $session->register_acl_type('decir_see_deleted_topic', AUTH_ALLOW, 'See placeholders for deleted topics', Array('read'), 'DecirTopic|DecirForum');
-  $session->register_acl_type('decir_see_deleted_topic_full', AUTH_DISALLOW, 'Read the full contents of deleted topics', Array('decir_see_deleted_topic'), 'DecirTopic|DecirForum');
+  $session->register_acl_type('decir_see_deleted_topic_full', AUTH_DISALLOW, 'Read the full contents of deleted topics', Array('decir_see_deleted_topic'), 'Special|DecirTopic|DecirForum');
 }
 
 function page_Special_Forum()

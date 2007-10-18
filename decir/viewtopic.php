@@ -72,7 +72,7 @@ if ( $db->numrows() > 0 )
   $topic_id = $row['topic_id'];
   $topic_exists = true;
   // FIXME: This will be controlled by an ACL rule
-  if ( $row['topic_deleted'] == 1 && $session->user_level < USER_LEVEL_MOD )
+  if ( $row['topic_deleted'] == 1 && !$session->get_permissions('decir_see_deleted_topic_full') )
   {
     $topic_exists = false;
   }
