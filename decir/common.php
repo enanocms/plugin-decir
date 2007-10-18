@@ -21,6 +21,7 @@ if(!defined('DECIR_ROOT'))
 }
 
 require('constants.php');
+require('functions.php');
 
 $html = '    <!-- Decir\'s updated namespace extractor function -->
     <script type="text/javascript">

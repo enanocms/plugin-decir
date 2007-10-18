@@ -10,15 +10,6 @@ if (clientPC.indexOf('opera') != -1) {
 	var is_opera_seven = (window.opera && document.childNodes);
 }
 
-var $_GET=new Object();
-var aParams=document.location.search.substr(1).split('&');
-for ( i = 0; i < aParams.length; i++ ) {
-  var aParam=aParams[i].split('=');
-  var sParamName=aParam[0];
-  var sParamValue=aParam[1];
-  $_GET[sParamName]=sParamValue;
-}
-
 // List of BBcode buttons
 
 var buttons = [
@@ -65,6 +56,20 @@ var buttons = [
       'start' : '[quote]',
       'end'   : '[/quote]',
       'desc'  : 'Quote'
+    },
+    {
+      'start' : '[url]',
+      'end'   : '[/url]',
+      'custom':true,
+      'func'  : function() { openUrlInput(this); },
+      'desc'  : 'URL'
+    },
+    {
+      'start' : '[[',
+      'end'   : ']]',
+      'custom':true,
+      'func'  : function() { openWikilinkInput(this); },
+      'desc'  : 'Wikilink'
     }
   ];
 
@@ -148,8 +153,6 @@ function convertTextAreaToBBCode(txtarea)
     fl.appendChild(lb);
     var used = [];
     
-    var scriptPath = ''; // REMOVE FOR ENANO IMPLEMENTATION!
-    
     var frm = document.createElement('form');
     frm.action='javascript:void(0)';
     frm.onsubmit = function(){return false;};
@@ -159,6 +162,7 @@ function convertTextAreaToBBCode(txtarea)
     tbl.cellspacing = '0';
     tbl.cellpadding = '0';
     tbl.width = '100%';
+    tbl.style.backgroundColor = 'transparent';
     
     var tr = document.createElement('tr');
     var tick = -1;
@@ -422,6 +426,56 @@ function sizePickClickHandler(parent)
 }
 
 //
+// URL INPUT
+//
+
+function openUrlInput(button)
+{
+  var url = prompt('Please enter the URL to the page you want to link to:', 'http://');
+  if ( url == '' || url == 'http://' || !url )
+    return false;
+  
+  var start = '[url]';
+  var inner = url;
+  var end = '[/url]';
+  
+  var text = prompt('Please enter some text to be displayed as the link (optional):');
+  if ( text != '' && ! (!text) )
+  {
+    start = '[url=' + url + ']';
+    inner = text;
+    end = '[/url]';
+  }
+  
+  formatBBCode(button, start, end, inner);
+}
+
+//
+// WIKILINK INPUT
+//
+
+function openWikilinkInput(button)
+{
+  var url = prompt('Please enter the title of the page to link to:', '');
+  if ( url == '' || !url )
+    return false;
+  
+  var start = '[[';
+  var inner = url;
+  var end = ']]';
+  
+  var text = prompt('Please enter some text to be displayed as the link (optional):');
+  if ( text != '' && ! (!text) )
+  {
+    start = '[[' + url + '|';
+    inner = text;
+    end = ']]';
+  }
+  
+  formatBBCode(button, start, end, inner);
+}
+
+//
 // HTML RENDERER
 //
 
@@ -531,19 +585,22 @@ function getElementsByClassName(parent, type, cls) {
   el = parent.getElementsByTagName(type);
   for ( var i in el )
   {
-    if(el[i].className)
+    if(el[i])
     {
-      if(el[i].className.indexOf(' ') > 0)
+      if(el[i].className)
       {
-        classes = el[i].className.split(' ');
+        if(el[i].className.indexOf(' ') > 0)
+        {
+          classes = el[i].className.split(' ');
+        }
+        else
+        {
+          classes = new Array();
+          classes.push(el[i].className);
+        }
+        if ( in_array(cls, classes) )
+          ret.push(el[i]);
       }
-      else
-      {
-        classes = new Array();
-        classes.push(el[i].className);
-      }
-      if ( in_array(cls, classes) )
-        ret.push(el[i]);
     }
   }
   return ret;

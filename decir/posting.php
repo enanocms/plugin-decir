@@ -60,12 +60,15 @@ if ( isset($_GET['act']) && $_GET['act'] == 'post' )
   }
   else if ( isset($_POST['do']['post']) )
   {
+    $errors = Array();
+    
     // Decrypt authorization array
     $parms = $aes->decrypt($_POST['authorization'], $session->private_key, ENC_HEX);
+    if ( !$parms )
+      $errors[] = 'Could not decrypt authorization key.';
     $parms = unserialize($parms);
     
     // Perform a little input validation
-    $errors = Array();
     if ( empty($_POST['post_text']) )
       $errors[] = 'Please enter a post.';
     if ( empty($_POST['subject']) && $parms['mode'] == 'topic' )
@@ -74,14 +77,47 @@ if ( isset($_GET['act']) && $_GET['act'] == 'post' )
     if ( !$parms['authorized'] )
       $errors[] = 'Invalid authorization key';
     
-    if ( sizeof($errors) > 0 )
+    if ( sizeof($errors) < 1 )
     {
       // Collect other options
       
       // Submit post
-      decir_submit_post();
+      if ( $parms['mode'] == 'reply' || $parms['mode'] == 'quote' )
+      {
+        $result = decir_submit_post($parms['topic_in'], $_POST['subject'], $_POST['post_text'], $post_id);
+        if ( $result )
+        {
+          // update forum stats
+          $user = $db->escape($session->username);
+          $q = $db->sql_query('UPDATE '.table_prefix."decir_forums SET num_posts = num_posts+1, last_post_id = $post_id, last_post_topic = {$parms['topic_in']}, last_post_user = $session->user_id WHERE forum_id={$parms['forum_in']};");
+          if ( !$q )
+          {
+            $db->_die('Decir posting.php under Submit post [reply]');
+          }
+          $url = makeUrlNS('Special', 'Forum/Topic/' . $parms['topic_in'], false, true);
+          redirect($url, 'Post submitted', 'Your post has been submitted successfully.', 4);
+        }
+      }
+      else if ( $parms['mode'] == 'topic' )
+      {
+        $result = decir_submit_topic($parms['forum_id'], $_POST['subject'], $_POST['post_text'], $topic_id, $post_id);
+        if ( $result )
+        {
+          // update forum stats
+          $q = $db->sql_query('UPDATE '.table_prefix."decir_forums SET num_posts = num_posts+1, num_topics = num_topics+1, last_post_id = $post_id, last_post_topic = $topic_id, last_post_user = $session->user_id WHERE forum_id={$parms['forum_id']};");
+          if ( !$q )
+          {
+            $db->_die('Decir posting.php under Submit post [topic]');
+          }
+          $url = makeUrlNS('Special', 'Forum/Topic/' . $topic_id, false, true);
+          redirect($url, 'Post submitted', 'Your post has been submitted successfully.', 4);
+        }
+      }
       return;
     }
+    $mode = 'already_taken_care_of';
+    $parms2 = $parms;
+    $parms = htmlspecialchars($_POST['authorization']);
   }
 }
 
@@ -90,6 +126,7 @@ if ( $mode == 'reply' || $mode == 'quote' )
   if ( $mode == 'reply' )
   {
     $message = '';
+    $subject = '';
     // Validate topic ID
     $topic_id = intval($paths->getParam(2));
     if ( empty($topic_id) )
@@ -108,7 +145,7 @@ if ( $mode == 'reply' || $mode == 'quote' )
       die_friendly('Error', '<p>Invalid post ID</p>');
     
     // Get post text and topic ID
-    $q = $db->sql_query('SELECT p.topic_id,t.post_text,t.bbcode_uid,p.poster_name FROM '.table_prefix.'decir_posts AS p
+    $q = $db->sql_query('SELECT p.topic_id,t.post_text,t.bbcode_uid,p.poster_name,p.post_subject FROM '.table_prefix.'decir_posts AS p
                            LEFT JOIN '.table_prefix.'decir_posts_text AS t
                              ON ( p.post_id = t.post_id )
                            WHERE p.post_id=' . $post_id . ';');
@@ -123,6 +160,7 @@ if ( $mode == 'reply' || $mode == 'quote' )
     $db->free_result();
     
     $message = '[quote="' . $row['poster_name'] . '"]' . bbcode_strip_uid( $row['post_text'], $row['bbcode_uid'] ) . '[/quote]';
+    $subject = 'Re: ' . htmlspecialchars($row['post_subject']);
     $quote_poster = $row['poster_name'];
     $topic_id = intval($row['topic_id']);
     
@@ -139,8 +177,8 @@ if ( $mode == 'reply' || $mode == 'quote' )
   $row = $db->fetchrow();
   $db->free_result();
   
-  $forum_perms = $session->fetch_page_acl('DecirForum', $row['forum_id']);
-  $topic_perms = $session->fetch_page_acl('DecirTopic', $row['topic_id']);
+  $forum_perms = $session->fetch_page_acl($row['forum_id'], 'DecirForum');
+  $topic_perms = $session->fetch_page_acl($row['topic_id'], 'DecirTopic');
   
   if ( !$forum_perms->get_permissions('decir_see_forum') )
     die_friendly('Error', '<p>The forum you requested does not exist.</p>');
@@ -166,6 +204,7 @@ if ( $mode == 'reply' || $mode == 'quote' )
 else if ( $mode == 'topic' )
 {
   $message = '';
+  $subject = '';
   // Validate topic ID
   $forum_id = intval($paths->getParam(2));
   if ( empty($forum_id) )
@@ -173,7 +212,7 @@ else if ( $mode == 'topic' )
   $title = 'Post new topic';
   
   // Topic ID is good, verify topic status
-  $q = $db->sql_query('SELECT forum_id FROM '.table_prefix.'decir_forums WHERE forum_id=' . $forum_id . ';');
+  $q = $db->sql_query('SELECT forum_id, forum_name FROM '.table_prefix.'decir_forums WHERE forum_id=' . $forum_id . ';');
   
   if ( !$q )
     $db->_die();
@@ -184,14 +223,14 @@ else if ( $mode == 'topic' )
   $row = $db->fetchrow();
   $db->free_result();
   
-  $forum_perms = $session->fetch_page_acl('DecirForum', $row['forum_id']);
+  $forum_perms = $session->fetch_page_acl($row['forum_id'], 'DecirForum');
   
   if ( !$forum_perms->get_permissions('decir_see_forum') )
     die_friendly('Error', '<p>The forum you requested does not exist.</p>');
   
   $parms = Array(
       'mode' => $mode,
-      'forum_in' => $forum_in,
+      'forum_id' => $forum_id,
       'timestamp' => time(),
       'authorized' => true
     );
@@ -203,7 +242,7 @@ else if ( $mode == 'topic' )
 else if ( $mode == 'already_taken_care_of' )
 {
   $mode = $parms2['mode'];
-  $title = ( $mode == 'topic' ) ? 'Post new topic' : ( $mode == 'reply' ) ? 'Reply to topic' : ( $mode  == 'quote' ) ? 'Reply to topic with quote' : 'Duh...';
+  $title = ( $mode == 'topic' ) ? 'Post new topic' : ( ( $mode == 'reply' ) ? 'Reply to topic' : ( $mode  == 'quote' ) ? 'Reply to topic with quote' : 'Duh...' );
 }
 else
 {
@@ -221,17 +260,43 @@ $template->add_header('<!-- DECIR BEGIN -->
 
 $template->header();
 
+if ( isset($errors) )
+{
+  echo '<div class="error-box" style="margin: 10px 0;">
+          <b>Your post could not be submitted.</b>
+          <ul>
+            <li>' . implode("</li>\n            <li>", $errors) . '</li>
+          </ul>
+        </div>';
+}
+
 if ( $do_preview )
 {
-  echo 'Doing preview';
+  $message = $_POST['post_text'];
+  $subject = htmlspecialchars($_POST['subject']);
+  $message_render = render_bbcode($message);
+  $message_render = RenderMan::smilieyize($message_render);
+  echo '<div style="border: 1px solid #222222; background-color: #F0F0F0; padding: 10px; max-height: 300px; clip: rect(0px,auto,auto,0px); overflow: auto; margin: 10px 0;">
+          <h2>Post preview</h2>
+          <p>' . $message_render . '</p>
+        </div>';
 }
 
 $url = makeUrlNS('Special', 'Forum/New', 'act=post', true);
 echo '<br />
       <form action="' . $url . '" method="post" enctype="multipart/form-data">';
+echo '<div class="tblholder">
+        <table border="0" cellspacing="1" cellpadding="4">';
+echo '<tr><td class="row2">Post subject:</td><td class="row1"><input name="subject" type="text" size="50" style="width: 100%;" value="' . $subject . '" /></td>';
+echo '<tr><td class="row3" colspan="2">';
 echo '<textarea name="post_text" class="bbcode" rows="20" cols="80">' . $message . '</textarea>';
-echo '<input type="hidden" name="authorization" value="' . $parms . '" />';
-echo '<div style="text-align: center; margin-top: 10px;"><input type="submit" name="do[post]" value="Submit post" style="font-weight: bold;" />&nbsp;<input type="submit" name="do[preview]" value="Show preview" /></div>';
+echo '</td></tr>';
+echo '
+      <!-- This authorization code is encrypted with '.AES_BITS.'-bit AES. -->
+      ';
+echo '<tr><th colspan="2" class="subhead"><input type="hidden" name="authorization" value="' . $parms . '" />';
+echo '<input type="submit" name="do[post]" value="Submit post" style="font-weight: bold;" />&nbsp;<input type="submit" name="do[preview]" value="Show preview" /></th></tr>';
+echo '</table></div>';
 echo '</form>';
 
 $template->footer();

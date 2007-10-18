@@ -35,19 +35,22 @@ if ( !$perms->get_permissions('decir_view_forum') )
 $sort_column = ( isset($_GET['sort_column']) && in_array($_GET['sort_column'], array('t.timestamp', 't.topic_title')) ) ? $_GET['sort_column'] : 't.timestamp';
 $sort_dir    = ( isset($_GET['sort_dir'])    && in_array($_GET['sort_dir'],    array('ASC', 'DESC')) ) ? $_GET['sort_dir'] : 'DESC';
 
-$q = $db->sql_query('SELECT t.topic_id,t.topic_title,t.topic_type,t.topic_icon,COUNT(p.post_id)-1 AS num_replies,
+$q = $db->sql_query('SELECT t.topic_id,t.topic_title,t.topic_type,t.topic_icon,
                      COUNT(h.hit_id) AS num_views,t.topic_starter AS starter_id, u.username AS topic_starter,
-                     p.poster_name AS last_post_name, p.timestamp AS last_post_time
+                     p.poster_name AS last_post_name, p.timestamp AS last_post_time, t.topic_deleted, u2.username AS deletor,
+                     t.topic_delete_reason
                        FROM '.table_prefix.'decir_topics AS t
                      LEFT JOIN '.table_prefix.'decir_posts AS p
-                       ON (t.last_post=p.post_id)
+                       ON (t.topic_id = p.topic_id)
                      LEFT JOIN '.table_prefix.'decir_hits AS h
                        ON (t.topic_id=h.topic_id)
                      LEFT JOIN '.table_prefix.'users AS u
                        ON (u.user_id=t.topic_starter)
+                     LEFT JOIN '.table_prefix.'users AS u2
+                       ON (u2.user_id = t.topic_deletor OR t.topic_deletor IS NULL)
                      WHERE t.forum_id='.$fid.'
-                     GROUP BY t.topic_id
-                     ORDER BY '.$sort_column.' '.$sort_dir.';');
+                     GROUP BY p.post_id
+                     ORDER BY '.$sort_column.' '.$sort_dir.', p.timestamp DESC;');
 
 if(!$q)
   $db->_die();
@@ -64,21 +67,60 @@ echo '<div class="tblholder">
 
 if ( $row = $db->fetchrow() )
 {
+  $last_row = $row;
+  $i = 0;
+  $num_replies = -1;
   do
   {
-    echo '<tr>
-            <td class="row2"></td>
-            <td class="row2"></td>
-            <td class="row2" style="width: 100%;"><b><a href="' . makeUrlNS('DecirTopic', $row['topic_id']) . '">' . $row['topic_title'] . '</a></b></td>
-            <td class="row3" style="text-align: center; max-width: 100px;">' . $row['topic_starter'] . '</td>
-            <td class="row1" style="text-align: center; width: 50px;">' . $row['num_replies'] . '</td>
-            <td class="row1" style="text-align: center; width: 50px;">' . $row['num_views'] . '</td>
-            <td class="row3" style="text-align: center;"><small style="white-space: nowrap;">' . date('d M Y h:i a', $row['last_post_time']) . '<br />by '.$row['last_post_name'].'</small></td>
-          </tr>';
+    $i++;
+    if ( $last_row['topic_id'] != $row['topic_id'] || $i == $db->numrows() )
+    {
+      if ( $last_row['topic_deleted'] == 1 )
+      {
+        $thread_link = '';
+        // FIXME: This will be controlled by an ACL rule
+        if ( $session->user_level >= USER_LEVEL_MOD )
+        {
+          $thread_link = '<b><a class="wikilink-nonexistent" href="' . makeUrlNS('DecirTopic', $last_row['topic_id']) . '">' . $last_row['topic_title'] . '</a></b>';
+        }
+        echo '<tr>
+              <td class="row2"></td>
+              <td class="row2"></td>
+              <td class="row2" style="width: 100%;">' . $thread_link . '</td>
+              <td class="row3" style="text-align: center;" colspan="4">Thread deleted by <b>' . htmlspecialchars($row['deletor']) . '</b><br />Reason: <i>' . htmlspecialchars($row['topic_delete_reason']) . '</i></td>
+            </tr>';
+      }
+      else
+      {
+        echo '<tr>
+              <td class="row2"></td>
+              <td class="row2"></td>
+              <td class="row2" style="width: 100%;"><b><a href="' . makeUrlNS('DecirTopic', $last_row['topic_id']) . '">' . $last_row['topic_title'] . '</a></b></td>
+              <td class="row3" style="text-align: center; max-width: 100px;">' . $last_row['topic_starter'] . '</td>
+              <td class="row1" style="text-align: center; width: 50px;">' . $num_replies . '</td>
+              <td class="row1" style="text-align: center; width: 50px;">' . $last_row['num_views'] . '</td>
+              <td class="row3" style="text-align: center;"><small style="white-space: nowrap;">' . date('d M Y h:i a', $last_row['last_post_time']) . '<br />by '.$last_row['last_post_name'].'</small></td>
+            </tr>';
+      }
+      $num_replies = 0;
+    }
+    $num_replies++;
+    $last_row = $row;
   } while ( $row = $db->fetchrow() );
+}
+else
+{
+  echo '<tr>
+          <td colspan="7" style="text-align: center;" class="row1">There are no topics in this forum.</td>
+        </tr>';
 }
 
 echo '</table></div>';
+
+if ( $perms->get_permissions('decir_post') )
+{
+  echo '<p><a href="' . makeUrlNS('Special', 'Forum/New/Topic/' . $fid) . '">Post new topic</a></p>';
+}
 
 $template->footer();
 

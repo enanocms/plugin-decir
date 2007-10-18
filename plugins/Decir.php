@@ -36,14 +36,16 @@ $plugins->attachHook('base_classes_initted', '
 function decir_early_init(&$paths, &$session)
 {
   $paths->addAdminNode('Decir forum configuration', 'General settings', 'DecirGeneral');
-  $paths->nslist['DecirForum']  = $paths->nslist['Special'] . 'Forum/ViewForum/';
-  $paths->nslist['DecirPost']   = $paths->nslist['Special'] . 'Forum/Post/';
-  $paths->nslist['DecirTopic']  = $paths->nslist['Special'] . 'Forum/Topic/';
+  $paths->create_namespace('DecirForum', $paths->nslist['Special'] . 'Forum/ViewForum/');
+  $paths->create_namespace('DecirPost',  $paths->nslist['Special'] . 'Forum/Post/');
+  $paths->create_namespace('DecirTopic', $paths->nslist['Special'] . 'Forum/Topic/');
   
   $session->register_acl_type('decir_see_forum',  AUTH_ALLOW, 'See forum in index', Array('read'),             'DecirForum');
   $session->register_acl_type('decir_view_forum', AUTH_ALLOW, 'View forum',         Array('decir_see_forum'),  'DecirForum');
   $session->register_acl_type('decir_post',       AUTH_ALLOW, 'Post new topics',    Array('decir_view_forum'), 'DecirForum');
   $session->register_acl_type('decir_reply',      AUTH_ALLOW, 'Reply to topics',    Array('decir_post'),       'DecirTopic');
+  $session->register_acl_type('decir_edit_own',   AUTH_ALLOW, 'Edit own posts',     Array('decir_post'),       'DecirPost');
+  $session->register_acl_type('decir_edit_other', AUTH_DISALLOW, 'Edit others\' posts', Array('decir_post'),   'DecirPost');
 }
 
 function page_Special_Forum()
@@ -53,6 +55,7 @@ function page_Special_Forum()
   if ( getConfig('decir_version') != ENANO_DECIR_VERSION || isset($_POST['do_install_finish']) )
   {
     require(DECIR_ROOT . '/install.php');
+    return false;
   }
   
   $act = strtolower( ( $n = $paths->getParam(0) ) ? $n : 'Index' );
@@ -77,6 +80,12 @@ function page_Special_Forum()
     case 'new':
       require('posting.php');
       break;
+    case 'edit':
+      require('edit.php');
+      break;
+    case 'delete':
+      require('delete.php');
+      break;
   }
   
   chdir($curdir);
@@ -85,7 +94,13 @@ function page_Special_Forum()
 
 function page_Admin_DecirGeneral()
 {
-  global $db, $session, $paths, $template, $plugins; if($session->auth_level < USER_LEVEL_ADMIN || $session->user_level < USER_LEVEL_ADMIN) { header('Location: '.makeUrl($paths->nslist['Special'].'Administration'.urlSeparator.'noheaders')); die('Hacking attempt'); }
+  global $db, $session, $paths, $template, $plugins; // Common objects
+  if ( $session->auth_level < USER_LEVEL_ADMIN || $session->user_level < USER_LEVEL_ADMIN )
+  {
+    echo '<h3>Error: Not authenticated</h3><p>It looks like your administration session is invalid or you are not authorized to access this administration page. Please <a href="' . makeUrlNS('Special', 'Login/' . $paths->nslist['Special'] . 'Administration', 'level=' . USER_LEVEL_ADMIN, true) . '">re-authenticate</a> to continue.</p>';
+    return;
+  }
+  
   echo 'Hello world!';
 }
 

@@ -11,7 +11,7 @@
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for details.
  */
-
+ 
 require('common.php');
 require('bbcode.php');
 
@@ -36,6 +36,8 @@ if ( strtolower($paths->getParam(0)) == 'post' || isset($_GET['pid']) )
     $db->_die();
   
   $row = $db->fetchrow();
+  $tid = intval($row['topic_id']);
+  $db->free_result();
 }
 else
 {
@@ -73,15 +75,59 @@ $post_template = <<<TPLCODE
 <a name="{POST_ID}" id="{POST_ID}"></a>
 <div class="post tblholder">
   <table border="0" cellspacing="1" cellpadding="4" style="width: 100%;">
+    <!-- BEGIN post_deleted -->
+    <tr>
+      <td class="row3" valign="top" style="height: 100%;">
+        <i>This post was deleted by {LAST_EDITED_BY}.<br />
+        <b>Reason:</b> {EDIT_REASON}</i>
+        <!-- BEGIN show_post -->
+        <br />
+        <br />
+        <b>The deleted post is shown below:</b>
+        <!-- END show_post -->
+      </td>
+      <td class="row1" style="width: 120px;" valign="top">
+        {USER_LINK}
+      </td>
+    </tr>
+    <!-- END post_deleted -->
+    <!-- BEGIN show_post -->
     <tr>
       <th colspan="2" style="text-align: left;">Posted: {TIMESTAMP}</th>
     </tr>
     <tr>
-      <td class="row3" valign="top">
-        {POST_TEXT}
+      <td class="row3" valign="top" style="height: 100%;">
+        <table border="0" width="100%" style="height: 100%; background-color: transparent;">
+          <tr>
+            <td valign="top" colspan="2">
+              {POST_TEXT}
+            </td>
+          </tr>
+          <!-- BEGINNOT post_deleted -->
+          <tr>
+            <td valign="bottom" style="text-align: left; font-size: smaller;">
+              <!-- BEGIN post_edited -->
+              <i>Last edited by {LAST_EDITED_BY}; edited <b>{EDIT_COUNT}</b> time{EDIT_COUNT_S} in total<br />
+              <b>Reason:</b> {EDIT_REASON}</i>
+              <!-- END post_edited -->
+            </td>
+            <td valign="bottom" style="text-align: right;">
+              <small><a href="{EDIT_LINK}">edit</a> | <a href="{DELETE_LINK}">delete</a> | <a href="{QUOTE_LINK}">+ quote</a></small>
+            </td>
+          </tr>
+          <!-- BEGINELSE post_deleted -->
+          <tr>
+            <td valign="bottom" style="text-align: left; font-size: smaller;">
+            </td>
+            <td valign="bottom" style="text-align: right;">
+              <small><a href="{RESTORE_LINK}">restore post</a> | <a href="{DELETE_LINK}">physically delete</a></small>
+            </td>
+          </tr>
+          <!-- END post_deleted -->
+        </table>
       </td>
       <td class="row1" style="width: 120px;" valign="top">
-        <div class="menu">
+        <div class="menu_nojs">
           {USER_LINK}
           <ul>
             <li><a>View profile</a></li>
@@ -106,16 +152,20 @@ $post_template = <<<TPLCODE
         <!-- END whos_online_support -->
       </td>
     </tr>
+    <!-- END show_post -->
   </table>
 </div>
 TPLCODE;
 
-$sql = 'SELECT p.post_id,p.poster_name,p.poster_id,u.username,p.timestamp,u.user_level,u.reg_time,t.post_text,t.bbcode_uid FROM '.table_prefix.'decir_posts AS p
+$sql = 'SELECT p.post_id,p.poster_name,p.poster_id,u.username,p.timestamp,p.edit_count,p.last_edited_by,p.post_deleted,u2.username AS editor,p.edit_reason,u.user_level,u.reg_time,t.post_text,t.bbcode_uid FROM '.table_prefix.'decir_posts AS p
           LEFT JOIN '.table_prefix.'users AS u
-            ON u.user_id=poster_id
+            ON u.user_id=p.poster_id
+          LEFT JOIN '.table_prefix.'users AS u2
+            ON (u2.user_id=p.last_edited_by OR p.last_edited_by IS NULL)
           LEFT JOIN '.table_prefix.'decir_posts_text AS t
             ON p.post_id=t.post_id
           WHERE p.topic_id='.$tid.'
+          GROUP BY p.post_id
           ORDER BY p.timestamp ASC;';
 
 $q = $db->sql_query($sql);
@@ -134,6 +184,7 @@ while ( $row = $db->fetchrow() )
   $poster_name = ( $row['poster_id'] == 1 ) ? $row['poster_name'] : $row['username'];
   $datetime = date('F d, Y h:i a', $row['timestamp']);
   $post_text = render_bbcode($row['post_text'], $row['bbcode_uid']);
+  $post_text = RenderMan::smilieyize($post_text);
   $regtime = date('F Y', $row['reg_time']);
   
   $user_color = '#0000AA';
@@ -150,7 +201,10 @@ while ( $row = $db->fetchrow() )
   {
     $user_link = '<big>'.$poster_name.'</big>';
   }
-  $quote_link = makeUrlNS('Special', 'Forum/New/Quote/' . $row['post_id'], false, true);
+  $quote_link  = makeUrlNS('Special', 'Forum/New/Quote/' . $row['post_id'], false, true);
+  $edit_link   = makeUrlNS('Special', 'Forum/Edit/' . $row['post_id'], false, true);
+  $delete_link = makeUrlNS('Special', 'Forum/Delete/' . $row['post_id'], false, true);
+  $restore_link = makeUrlNS('Special', 'Forum/Delete/' . $row['post_id'], 'act=restore', true);
   $user_title = 'Anonymous user';
   switch ( $row['user_level'] )
   {
@@ -158,6 +212,13 @@ while ( $row = $db->fetchrow() )
     case USER_LEVEL_MOD:   $user_title = 'Moderator'; break;
     case USER_LEVEL_MEMBER:$user_title = 'Member'; break;
     case USER_LEVEL_GUEST: $user_title = 'Guest'; break;
+  }
+  $leb_link = '';
+  if ( $row['editor'] )
+  {
+    $userpage_url = makeUrlNS('User', sanitize_page_id($row['editor']), false, true);
+    $row['editor'] = htmlspecialchars($row['editor']);
+    $leb_link = "<a href=\"$userpage_url\">{$row['editor']}</a>";
   }
   $parser->assign_vars(Array(
       'POST_ID' => (string)$row['post_id'],
@@ -167,10 +228,17 @@ while ( $row = $db->fetchrow() )
       'TIMESTAMP' => $datetime,
       'POST_TEXT' => $post_text,
       'USER_TITLE' => $user_title,
-      'QUOTE_LINK' => $quote_link
+      'QUOTE_LINK' => $quote_link,
+      'EDIT_LINK' => $edit_link,
+      'DELETE_LINK' => $delete_link,
+      'RESTORE_LINK' => $restore_link,
+      'EDIT_COUNT' => $row['edit_count'],
+      'EDIT_COUNT_S' => ( $row['edit_count'] == 1 ? '' : 's' ),
+      'LAST_EDITED_BY' => $leb_link,
+      'EDIT_REASON' => htmlspecialchars($row['edit_reason'])
     ));
   // Decir can integrate with the Who's Online plugin
-  $who_support = $plugins->loaded('WhosOnline');
+  $who_support = $plugins->loaded('WhosOnline') && $row['user_level'] >= USER_LEVEL_GUEST;
   $user_online = false;
   if ( $who_support && in_array($row['username'], $whos_online['users']) )
   {
@@ -182,7 +250,11 @@ while ( $row = $db->fetchrow() )
   }
   $parser->assign_bool(Array(
       'whos_online_support' => $who_support,
-      'user_is_online' => $user_online
+      'user_is_online' => $user_online,
+      'post_edited' => ( $row['edit_count'] > 0 ),
+      'post_deleted' => ( $row['post_deleted'] == 1 ),
+      // FIXME: This should check something on ACLs
+      'show_post' => ( $row['post_deleted'] != 1 || $session->user_level >= USER_LEVEL_MOD )
     ));
   echo $parser->run();
 }
@@ -194,8 +266,8 @@ if ( $topic_exists )
   $can_post_replies = false;
   $can_post_topics  = false;
   
-  $forum_perms = $session->fetch_page_acl('DecirForum', $forum_id);
-  $topic_perms = $session->fetch_page_acl('DecirTopic', $topic_id);
+  $forum_perms = $session->fetch_page_acl($forum_id, 'DecirForum');
+  $topic_perms = $session->fetch_page_acl($topic_id, 'DecirTopic');
   
   if ( $forum_perms->get_permissions('decir_post') )
     $can_post_topics = true;
@@ -218,6 +290,10 @@ if ( $topic_exists )
   }
   echo '</p>';
 }
+
+// log the hit
+$time = time();
+$q = $db->sql_query('INSERT INTO '.table_prefix."decir_hits(user_id, topic_id, timestamp) VALUES($session->user_id, $tid, $time);");
 
 $template->footer();
 

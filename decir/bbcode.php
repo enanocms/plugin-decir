@@ -12,46 +12,39 @@
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for details.
  */
  
-function str_replace_once($needle1, $needle2, $haystack)
-{
-  $len_h = strlen($haystack);
-  $len_1 = strlen($needle1);
-  $len_2 = strlen($needle2);
-  if ( $len_h < $len_1 )
-    return $haystack;
-  if ( $needle1 == $haystack )
-    return $needle1;
-  for ( $i = 0; $i < $len_h; $i++ )
-  {
-    if ( substr($haystack, $i, $len_1) == $needle1 )
-    {
-      $haystack = substr($haystack, 0, $i) .
-                  $needle2 .
-                  substr($haystack, $i + $len_1);
-      return $haystack;
-    }
-  }
-}
-
-function render_bbcode($text, $bbcode_uid)
+function render_bbcode($text, $bbcode_uid = false)
 {
   // First things first, strip out all [code] sections
   $text = decir_bbcode_strip_code($text, $bbcode_uid, $_code);
   
+  if ( $bbcode_uid )
+    $bbcode_uid = ':' . $bbcode_uid;
+  
   // Bold text
-  $text = preg_replace("/\[b:$bbcode_uid\](.*?)\[\/b:$bbcode_uid\]/is", '<b>\\1</b>', $text);
+  $text = preg_replace("/\[b$bbcode_uid\](.*?)\[\/b$bbcode_uid\]/is", '<b>\\1</b>', $text);
   
   // Italicized text
-  $text = preg_replace("/\[i:$bbcode_uid\](.*?)\[\/i:$bbcode_uid\]/is", '<i>\\1</i>', $text);
+  $text = preg_replace("/\[i$bbcode_uid\](.*?)\[\/i$bbcode_uid\]/is", '<i>\\1</i>', $text);
   
-  // Uunderlined text
-  $text = preg_replace("/\[u:$bbcode_uid\](.*?)\[\/u:$bbcode_uid\]/is", '<u>\\1</u>', $text);
+  // Underlined text
+  $text = preg_replace("/\[u$bbcode_uid\](.*?)\[\/u$bbcode_uid\]/is", '<u>\\1</u>', $text);                        
   
   // Colored text
-  $text = preg_replace("/\[color=\#([A-F0-9]*){3,6}:$bbcode_uid\](.*?)\[\/color:$bbcode_uid\]/is", '<span style="color: #\\1">\\2</span>', $text);
+  $text = preg_replace("/\[color$bbcode_uid=#([A-Fa-f0-9][A-Fa-f0-9][A-Fa-f0-9]([A-Fa-f0-9][A-Fa-f0-9][A-Fa-f0-9])?)\](.*?)\[\/color$bbcode_uid\]/is", '<span style="color: #\\1">\\3</span>', $text);
+  
+  // Size
+  $text = preg_replace("/\[size$bbcode_uid=([0-4]+(\.[0-9]+)?)\](.*?)\[\/size$bbcode_uid\]/is", '<span style="font-size: \\1em;">\\3</span>', $text);
   
   // Quotes
-  $text = preg_replace("/\[quote:$bbcode_uid\](.*?)\[\/quote:$bbcode_uid\]/is", '<blockquote>\\1</blockquote>', $text);
+  $text = preg_replace("/\[quote$bbcode_uid=\"?([^]]+?)\"?\](.*?)\[\/quote$bbcode_uid\]/is", '<span class="decir-quoteheader">\\1 wrote:</span><blockquote>\\2</blockquote>', $text);
+  $text = preg_replace("/\[quote$bbcode_uid\](.*?)\[\/quote$bbcode_uid\]/is", '<blockquote class="decir-quotebody">\\1</blockquote>', $text);
+  
+  // https?:\/\/((([a-z0-9-]+\.)*)[a-z0-9-]+)(\/[A-z0-9_%\|~`!\!@#\$\^&\*\(\):;\.,\/-]*(\?(([a-z0-9_-]+)(=[A-z0-9_%\|~`\!@#\$\^&\*\(\):;\.,\/-\[\]]+)?((&([a-z0-9_-]+)(=[A-z0-9_%\|~`!\!@#\$\^&\*\(\):;\.,\/-]+)?)*))?)?)?
+  
+  // Links
+  // Trial and error.
+  $regexp = "/\[url$bbcode_uid(=(https?:\/\/((([a-z0-9-]+\.)*)[a-z0-9-]+)(\/[A-z0-9_%\|~`!\!@#\$\^&\*\(\):;\.,\/-]*(\?(([a-z0-9_-]+)(=[A-z0-9_%\|~`\!@#\$\^&\*\(\):;\.,\/-\[\]]+)?((&([a-z0-9_-]+)(=[A-z0-9_%\|~`!\!@#\$\^&\*\(\):;\.,\/-]+)?)*))?)?)?))?\](.*?)\[\/url$bbcode_uid\]/is";
+  $text = preg_replace($regexp, '<a href="\\2">\\15</a>', $text);
   
   // Newlines
   $text = str_replace("\n", "<br />\n", $text);
@@ -60,7 +53,7 @@ function render_bbcode($text, $bbcode_uid)
   $text = decir_bbcode_restore_code($text, $bbcode_uid, $_code);
   
   // Code
-  $text = preg_replace("/\[code:$bbcode_uid\](.*?)\[\/code:$bbcode_uid\]/is", '<pre>\\1</pre>', $text);
+  $text = preg_replace("/\[code$bbcode_uid\](.*?)\[\/code$bbcode_uid\]/is", '<pre>\\1</pre>', $text);
   
   return $text;
 }
@@ -94,5 +87,37 @@ function bbcode_strip_uid($bbcode, $uid)
   $bbcode = preg_replace("/\[([a-z]+?):{$uid}\](.*?)\[\/\\1:{$uid}\]/is", '[\\1]\\2[/\\1]', $bbcode);
   
   return $bbcode;
+}
+
+function bbcode_inject_uid($text, &$uid)
+{
+  $seed = md5( implode('.', explode(' ', microtime)) );
+  $uid = substr($seed, 0, 10);
+  // Bold text
+  $text = preg_replace("/\[b\](.*?)\[\/b\]/is", "[b:$uid]\\1[/b:$uid]", $text);
+  
+  // Italicized text
+  $text = preg_replace("/\[i\](.*?)\[\/i\]/is", "[i:$uid]\\1[/i:$uid]", $text);
+  
+  // Uunderlined text
+  $text = preg_replace("/\[u\](.*?)\[\/u\]/is", "[u:$uid]\\1[/u:$uid]", $text);
+  
+  // Colored text
+  $text = preg_replace("/\[color=\#([A-Fa-f0-9][A-Fa-f0-9][A-Fa-f0-9]([A-Fa-f0-9][A-Fa-f0-9][A-Fa-f0-9])?)\](.*?)\[\/color\]/is", "[color:$uid=#\\1]\\3[/color:$uid]", $text);
+  
+  // Size
+  $text = preg_replace('/\[size=([0-4]+(\.[0-9]+)?)\](.*?)\[\/size\]/is', "[size:$uid=\\1]\\3[/size:$uid]", $text);
+  
+  // Quotes
+  $text = preg_replace("/\[quote\](.*?)\[\/quote\]/is", "[quote:$uid]\\1[/quote:$uid]", $text);
+  $text = preg_replace("/\[quote=\"?([^]]+)\"?\](.*?)\[\/quote\]/is", "[quote:$uid=\\1]\\2[/quote:$uid]", $text);
+  
+  // Code
+  $text = preg_replace("/\[code\](.*?)\[\/code\]/is", "[code:$uid]\\1[/code:$uid]", $text);
+  
+  // URLs
+  $text = preg_replace('/\[url(=https?:\/\/([^ ]+))?\](.*?)\[\/url\]/is', "[url:$uid\\1]\\3[/url:$uid]", $text);
+  
+  return $text;
 }
 

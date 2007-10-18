@@ -23,6 +23,9 @@ CREATE TABLE decir_topics(
   topic_locked tinyint(1) unsigned NOT NULL DEFAULT 0,
   topic_moved tinyint(1) unsigned NOT NULL DEFAULT 0,
   timestamp int(11) unsigned NOT NULL,
+  topic_deleted tinyint(1) NOT NULL DEFAULT 0,
+  topic_deletor int(12) DEFAULT NULL,
+  topic_delete_reason varchar(255) DEFAULT NULL,
   PRIMARY KEY ( topic_id )
 );
 CREATE TABLE decir_posts(
@@ -30,10 +33,12 @@ CREATE TABLE decir_posts(
   topic_id bigint(15) unsigned NOT NULL,
   poster_id int(12) unsigned NOT NULL,
   poster_name varchar(255) NOT NULL,
+  post_subject varchar(255) NOT NULL DEFAULT '',
   timestamp int(11) unsigned NOT NULL,
   last_edited_by int(12) unsigned DEFAULT NULL,
-  edit_count int(5) unsigned,
+  edit_count int(5) unsigned NOT NULL DEFAULT 0,
   edit_reason varchar(255),
+  post_deleted tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY ( post_id )
 );
 CREATE TABLE decir_posts_text(

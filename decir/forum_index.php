@@ -49,16 +49,24 @@ if ( $row = $db->fetchrow($q) )
       case FORUM_FORUM:
         $color = ( $row['user_level'] >= USER_LEVEL_ADMIN ) ? 'AA0000' : ( ( $row['user_level'] >= USER_LEVEL_MOD ) ? '00AA00' : '0000AA' );
         // Forum
+        if ( $row['post_id'] )
+        {
+          $last_post_data = '<small>
+                   <a href="' . makeUrlNS('DecirTopic', $row['topic_id']) . '#post' . $row['post_id'] . '">' . $row['topic_title'] . '</a><br />
+                   ' . date('d M Y h:i a', $row['timestamp']) . '<br />
+                   by <b><a style="color: #' . $color . '" href="' . makeUrlNS('User', $row['username']) . '">' . $row['username'] . '</a></b>
+                 </small>';
+        }
+        else
+        {
+          $last_post_data = 'No posts';
+        }
         echo '<tr><td class="row3" style="text-align: center;">&lt;icon&gt;</td><td class="row2"><b><a href="' . makeUrlNS('DecirForum', $row['forum_id']) . '">'
              . $row['forum_name'] . '</a></b><br />' . $row['forum_desc'].'</td>
              <td class="row3" style="text-align: center;">' . $row['num_topics'] . '</td>
              <td class="row3" style="text-align: center;">' . $row['num_posts'] . '</td>
              <td class="row1" style="text-align: center;">
-               <small>
-                 <a href="' . makeUrlNS('DecirTopic', $row['topic_id']) . '#post' . $row['post_id'] . '">' . $row['topic_title'] . '</a><br />
-                 ' . date('d M Y h:i a', $row['timestamp']) . '<br />
-                 by <b><a style="color: #' . $color . '" href="' . makeUrlNS('User', $row['username']) . '">' . $row['username'] . '</a></b>
-               </small>
+               ' . $last_post_data . '
              </td>
              </tr>';
         break;
@@ -75,7 +83,7 @@ if ( $row = $db->fetchrow($q) )
 }
 else
 {
-  echo '<td class="row1" colspan="4">This board has no forums.</td>';
+  echo '<td class="row1" colspan="5">This board has no forums.</td>';
 }
 if ( $cat_open )
   echo '</tbody>';
