@@ -52,6 +52,8 @@ function page_Special_DecirAdmin()
   $GLOBALS['template'] = new template();
   $template =& $GLOBALS['template'];
   
+  $template->add_header('<script type="text/javascript" src="' . scriptPath . '/decir/js/admin/reorder.js"></script>');
+  
   $template->header();
   ?>
   Add or remove forums, control user permissions, and check forum statistics.

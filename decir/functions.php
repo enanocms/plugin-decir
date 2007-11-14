@@ -403,10 +403,15 @@ function decir_restore_topic($topic_id)
 function decir_show_footers()
 {
   global $db, $session, $paths, $template, $plugins; // Common objects
+  echo '<p style="text-align: center; margin: 20px 0 0 0; color: #808080;"><small>';
+  echo 'Powered by the <a href="http://decir.enanocms.org/">Decir Forum Engine</a> for <a href="' . makeUrlNS('Special', 'About_Enano') . '">Enano</a><br />
+        &copy; 2007 Dan Fuhry and the Enano CMS team';
   if ( $session->user_level >= USER_LEVEL_ADMIN )
   {
-    echo '<p style="text-align: center; margin: 20px 0 0 0;"><small><a href="' . makeUrlNS('Special', 'DecirAdmin') . '">Administration control panel</a></small></p>';
+    echo '<br />';
+    echo '<a href="' . makeUrlNS('Special', 'DecirAdmin') . '">Administration control panel</a>';
   }
+  echo '</small></p>';
 }
 
 ?>

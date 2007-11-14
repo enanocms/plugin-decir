@@ -49,6 +49,9 @@ function render_bbcode($text, $bbcode_uid = false)
   // Newlines
   $text = str_replace("\n", "<br />\n", $text);
   
+  // Wikilinks
+  $text = RenderMan::parse_internal_links($text);
+  
   // Restore [code] blocks
   $text = decir_bbcode_restore_code($text, $bbcode_uid, $_code);
   

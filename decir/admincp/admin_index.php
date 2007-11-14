@@ -62,7 +62,7 @@ function page_Admin_DecirIndex()
   }
   else
   {
-    $avg_posts = $num_posts / $board_age_days;
+    $avg_posts = round($num_posts / $board_age_days, 3);
   }
   
   echo '<h3>Administration home</h3>';
