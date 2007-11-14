@@ -164,6 +164,7 @@ if ( $show_preview )
 </form>
 <?php
 
+decir_show_footers();
 $template->footer();
 
 ?>

@@ -396,4 +396,17 @@ function decir_restore_topic($topic_id)
   return true;
 }
 
+/**
+ * Shows the administration link on the foot of the page.
+ */
+
+function decir_show_footers()
+{
+  global $db, $session, $paths, $template, $plugins; // Common objects
+  if ( $session->user_level >= USER_LEVEL_ADMIN )
+  {
+    echo '<p style="text-align: center; margin: 20px 0 0 0;"><small><a href="' . makeUrlNS('Special', 'DecirAdmin') . '">Administration control panel</a></small></p>';
+  }
+}
+
 ?>

@@ -1,4 +1,4 @@
-CREATE TABLE decir_forums(
+CREATE TABLE {{TABLE_PREFIX}}decir_forums(
   forum_id int(12) unsigned NOT NULL auto_increment,
   forum_type tinyint(2) unsigned NOT NULL DEFAULT 1,
   forum_name varchar(255) NOT NULL,
@@ -13,7 +13,7 @@ CREATE TABLE decir_forums(
   forum_extra text,
   PRIMARY KEY ( forum_id )
 );
-CREATE TABLE decir_topics(
+CREATE TABLE {{TABLE_PREFIX}}decir_topics(
   topic_id int(15) unsigned NOT NULL auto_increment,
   forum_id int(12) unsigned NOT NULL,
   topic_title varchar(255) NOT NULL,
@@ -26,9 +26,11 @@ CREATE TABLE decir_topics(
   topic_deleted tinyint(1) NOT NULL DEFAULT 0,
   topic_deletor int(12) DEFAULT NULL,
   topic_delete_reason varchar(255) DEFAULT NULL,
+  num_views bigint(21) UNSIGNED NOT NULL DEFAULT 0,
+  last_post bigint(18) UNSIGNED NOT NULL,
   PRIMARY KEY ( topic_id )
 );
-CREATE TABLE decir_posts(
+CREATE TABLE {{TABLE_PREFIX}}decir_posts(
   post_id bigint(18) unsigned NOT NULL auto_increment,
   topic_id bigint(15) unsigned NOT NULL,
   poster_id int(12) unsigned NOT NULL,
@@ -41,13 +43,13 @@ CREATE TABLE decir_posts(
   post_deleted tinyint(1) NOT NULL DEFAULT 0,
   PRIMARY KEY ( post_id )
 );
-CREATE TABLE decir_posts_text(
+CREATE TABLE {{TABLE_PREFIX}}decir_posts_text(
   post_id bigint(18) unsigned NOT NULL,
   post_text longtext NOT NULL,
   bbcode_uid varchar(10) NOT NULL,
   PRIMARY KEY ( post_id )
 );
-CREATE TABLE decir_hits(
+CREATE TABLE {{TABLE_PREFIX}}decir_hits(
   hit_id bigint(21) unsigned NOT NULL auto_increment,
   user_id int(12) unsigned NOT NULL DEFAULT 1,
   topic_id bigint(15) unsigned NOT NULL,

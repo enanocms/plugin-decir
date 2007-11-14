@@ -22,4 +22,7 @@ define('TOPIC_NORMAL', 1);
 define('TOPIC_STICKY', 4);
 define('TOPIC_ANNOUNCE', 5);
 
+define('DECIR_ADMIN_MODE_CREATE', 1);
+define('DECIR_ADMIN_MODE_EDIT', 2);
+
 ?>

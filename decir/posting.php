@@ -317,6 +317,7 @@ echo '<input type="submit" name="do[post]" value="Submit post" style="font-weigh
 echo '</table></div>';
 echo '</form>';
 
+decir_show_footers();
 $template->footer();
 
 ?>

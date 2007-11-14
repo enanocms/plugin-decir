@@ -22,7 +22,8 @@ $fid = intval($fid);
 if(empty($fid))
 {
   echo '<p>Invalid forum ID</p>';
-  $template->footer();
+  decir_show_footers();
+$template->footer();
   return;
 }
 
@@ -123,6 +124,7 @@ if ( $perms->get_permissions('decir_post') )
   echo '<p><a href="' . makeUrlNS('Special', 'Forum/New/Topic/' . $fid) . '">Post new topic</a></p>';
 }
 
+decir_show_footers();
 $template->footer();
 
 ?>

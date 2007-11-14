@@ -33,6 +33,8 @@ $plugins->attachHook('base_classes_initted', '
       ));
   ');
 
+require( DECIR_ROOT . '/admincp/admin_base.php' );
+
 function decir_early_init(&$paths, &$session)
 {
   $paths->addAdminNode('Decir forum configuration', 'General settings', 'DecirGeneral');
@@ -52,6 +54,7 @@ function page_Special_Forum()
   
   if ( getConfig('decir_version') != ENANO_DECIR_VERSION || isset($_POST['do_install_finish']) )
   {
+    chdir(DECIR_ROOT);
     require(DECIR_ROOT . '/install.php');
     return false;
   }
@@ -82,12 +85,6 @@ function page_Special_Forum()
   
   chdir($curdir);
   
-}
-
-function page_Admin_DecirGeneral()
-{
-  global $db, $session, $paths, $template, $plugins; if($session->auth_level < USER_LEVEL_ADMIN || $session->user_level < USER_LEVEL_ADMIN) { header('Location: '.makeUrl($paths->nslist['Special'].'Administration'.urlSeparator.'noheaders')); die('Hacking attempt'); }
-  echo 'Hello world!';
 }
 
 ?>

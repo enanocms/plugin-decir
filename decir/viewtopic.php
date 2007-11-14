@@ -11,7 +11,7 @@
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied
  * warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for details.
  */
- 
+
 require('common.php');
 require('bbcode.php');
 require('functions_viewtopic.php');
@@ -27,7 +27,8 @@ if ( strtolower($paths->getParam(0)) == 'post' || isset($_GET['pid']) )
   {
     $template->header();
     echo '<p>Invalid topic ID</p>';
-    $template->footer();
+    decir_show_footers();
+$template->footer();
     return;
   }
   
@@ -48,7 +49,8 @@ else
   {
     $template->header();
     echo '<p>Invalid topic ID</p>';
-    $template->footer();
+    decir_show_footers();
+$template->footer();
     return;
   }
 }
@@ -192,6 +194,7 @@ $time = time();
 $q = $db->sql_query('INSERT INTO '.table_prefix."decir_hits(user_id, topic_id, timestamp) VALUES($session->user_id, $tid, $time);");
 $q = $db->sql_query('UPDATE '.table_prefix."decir_topics SET num_views = num_views + 1 WHERE topic_id = $tid;");
 
+decir_show_footers();
 $template->footer();
 
 ?>

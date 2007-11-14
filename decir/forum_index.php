@@ -48,6 +48,11 @@ if ( $row = $db->fetchrow($q) )
     {
       case FORUM_FORUM:
         $color = ( $row['user_level'] >= USER_LEVEL_ADMIN ) ? 'AA0000' : ( ( $row['user_level'] >= USER_LEVEL_MOD ) ? '00AA00' : '0000AA' );
+        $last_post_info = ( $row['last_post_id'] ) ?
+                 '<a href="' . makeUrlNS('DecirTopic', $row['topic_id']) . '#post' . $row['post_id'] . '">' . $row['topic_title'] . '</a><br />
+                 ' . date('d M Y h:i a', $row['timestamp']) . '<br />
+                 by <b><a style="color: #' . $color . '" href="' . makeUrlNS('User', $row['username']) . '">' . $row['username'] . '</a></b>' :
+                 '&lt;No posts&gt;';
         // Forum
         echo '<tr><td class="row3" style="text-align: center;">&lt;icon&gt;</td><td class="row2"><b><a href="' . makeUrlNS('DecirForum', $row['forum_id']) . '">'
              . $row['forum_name'] . '</a></b><br />' . $row['forum_desc'].'</td>
@@ -55,9 +60,7 @@ if ( $row = $db->fetchrow($q) )
              <td class="row3" style="text-align: center;">' . $row['num_posts'] . '</td>
              <td class="row1" style="text-align: center;">
                <small>
-                 <a href="' . makeUrlNS('DecirTopic', $row['topic_id']) . '#post' . $row['post_id'] . '">' . $row['topic_title'] . '</a><br />
-                 ' . date('d M Y h:i a', $row['timestamp']) . '<br />
-                 by <b><a style="color: #' . $color . '" href="' . makeUrlNS('User', $row['username']) . '">' . $row['username'] . '</a></b>
+                 ' . $last_post_info . '
                </small>
              </td>
              </tr>';
@@ -82,6 +85,7 @@ if ( $cat_open )
 echo '</table>
       </div>';
 
+decir_show_footers();
 $template->footer();
 
 ?>
