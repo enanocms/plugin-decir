@@ -116,6 +116,95 @@ function page_Admin_DecirForums()
         $form->category_list = $cats;
         echo $form->html();
         break;
+      case 'delete':
+      case 'delete_finish':
+        if ( !isset($parms['fid']) || ( isset($parms['fid']) && !is_int($parms['fid']) ) )
+        {
+          echo '<div class="error-box">Invalid forum ID passed to editor.</div>';
+          break;
+        }
+        
+        // $fid is safe (validated as an integer).
+        $fid =& $parms['fid'];
+        $q = $db->sql_query('SELECT forum_id, forum_name, forum_type FROM ' . table_prefix . 'decir_forums WHERE forum_id = ' . $fid . ';');
+        if ( !$q )
+          $db->_die('Decir admin_forums.php selecting forum data for deletion');
+        
+        $row = $db->fetchrow();
+        $db->free_result();
+        
+        if ( $row['forum_type'] == FORUM_FORUM )
+        {
+          // Provide the option of moving the posts in this forum to another forum
+          $q = $db->sql_query('SELECT forum_id, forum_name FROM ' . table_prefix . "decir_forums WHERE forum_id != {$row['forum_id']} AND forum_type = " . FORUM_FORUM . ';');
+          if ( !$q )
+            $db->_die('Decir admin_forums.php selecting list of possible forums to move topics to');
+          $opt_move = '';
+          if ( $db->numrows() > 0 )
+          {
+            $opt_move .= '<p><label><input type="radio" name="with_content" value="move" /> Move to forum:</label><br />
+                             <select name="move_to">';
+            while ( $drow = $db->fetchrow() )
+            {
+              $opt_move .= "<option value=\"{$drow['forum_id']}\">" . htmlspecialchars($drow['forum_name']) . '</option>';
+            }
+            $opt_move .= "</select></p>";
+          }
+        }
+        else if ( $row['forum_type'] == FORUM_CATEGORY )
+        {
+          // Provide the option of moving the posts in this forum to another forum
+          $q = $db->sql_query('SELECT forum_id, forum_name FROM ' . table_prefix . "decir_forums WHERE forum_id != {$row['forum_id']} AND forum_type = " . FORUM_CATEGORY . ';');
+          if ( !$q )
+            $db->_die('Decir admin_forums.php selecting list of possible categories to move forums to');
+          $opt_move = '';
+          if ( $db->numrows() > 0 )
+          {
+            $opt_move .= '<p><label><input type="radio" name="with_content" value="move" /> Move to category:</label><br />
+                             <select name="move_to">';
+            while ( $drow = $db->fetchrow() )
+            {
+              $opt_move .= "<option value=\"{$drow['forum_id']}\">" . htmlspecialchars($drow['forum_name']) . '</option>';
+            }
+            $opt_move .= "</select></p>";
+          }
+        }
+        else
+        {
+          break;
+        }
+        
+        $forcat = ( $row['forum_type'] == FORUM_FORUM ) ? 'forum' : 'category';
+        echo '<div class="tblholder">
+                <table border="0" cellspacing="1" cellpadding="4">
+                  <tr>
+                    <th>Deleting ' . $forcat . '</th>
+                  </tr>
+                  <tr>
+                    <td class="row2">
+                      <div style="margin: 0 auto; display: table;">
+                      <p><b>You are about to obliterate the '. $forcat .' "' . htmlspecialchars($row['forum_name']) . '".</b><br />
+                         You can either preserve its contents or delete them. Beware that if you are deleting a<br />
+                         ' . $forcat . ' with a large number of posts in it, this process may take some time.</p>
+                      </div>
+                      <div style="margin: 0 auto; display: table;">
+                      <p><label><input type="radio" checked="checked" name="with_content" value="delete" /> Delete contents</p>
+                      ' . $opt_move . '
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="row1" style="text-align: center;">
+                      <button name="act" value="delete_finish;fid=' . $row['forum_id'] . '"><span style="font-weight: bold; color: red;">Delete forum</span></button>
+                      <button name="act" value="noop" style="font-weight: normal;">Cancel</button>
+                    </td>
+                  </tr>
+                </table>
+              </div>';
+              
+        $show_main_menu = false;
+        
+        break;
       case 'edit':
       case 'edit_finish':
         
@@ -328,7 +417,7 @@ function page_Admin_DecirForums()
     echo '  </table>
           </div>';
     $order = /* implode(',', $order_cats) . ';' . */ implode(',', $order_forums);
-    echo '<input type="text" name="forum_order" id="forum_order" value="' . $order . '" />';
+    echo '<input type="hidden" name="forum_order" id="forum_order" value="' . $order . '" />';
     echo "</form>";
   }
 }

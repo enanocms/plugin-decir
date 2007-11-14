@@ -17,12 +17,7 @@ function decir_admin_dragforum_start(e)
   if ( $dynano(this).hasClass('decir_forum') )
   {
     reorder_state.type = 'forum';
-  }
-  else if ( $dynano(this).hasClass('decir_category') )
-  {
-    alert(this.parentNode.DecirForumID);
-    document.getElementById('forum_cat_' + this.parentNode.DecirForumID).lastChild.lastChild.style.borderBottom = '5px solid #000000';
-    reorder_state.type = 'category';
+    this.style.borderBottom = '5px solid #000000';
   }
   
   document.onmousemove = decir_admin_dragforum_onmouse;
