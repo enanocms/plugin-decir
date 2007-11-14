@@ -53,8 +53,8 @@ function decir_admin_dragforum_onmouse(e)
   var current_threshold = threshold[ reorder_state.over.parentNode.DecirForumID ];
   var next_threshold = threshold[ parseInt(reorder_state.over.parentNode.DecirForumID) + 1 ];
   if ( !next_threshold )
-    next_threshold = 99999999;
-  window.console.debug('current ', current_threshold, ' next ', next_threshold);
+    next_threshold = -1;
+  // window.console.debug('current ', current_threshold, ' next ', next_threshold);
   if ( mouseY < current_threshold )
   {
     var prev_tr = reorder_state.over.parentNode.previousSibling;
@@ -79,7 +79,7 @@ function decir_admin_dragforum_onmouse(e)
     reorder_state.over = prev_td;
     reorder_state.over.style.borderBottom = '5px solid #000000';
   }
-  else if ( mouseY > next_threshold )
+  else if ( mouseY > next_threshold && next_threshold > -1 )
   {
     var next_tr = reorder_state.over.parentNode.nextSibling;
     if ( !next_tr )
