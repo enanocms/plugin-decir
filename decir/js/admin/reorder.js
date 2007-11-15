@@ -3,7 +3,8 @@ var reorder_state = {
   type: false,
   id: false,
   obj: false,
-  over: false
+  over: false,
+  topped: false
 }
 
 function decir_admin_dragforum_start(e)
@@ -32,11 +33,24 @@ function decir_admin_dragforum_onmouse(e)
   // Determine threshold for moving the target
   var nodes = reorder_state.obj.parentNode.parentNode.childNodes;
   var threshold = new Object();
+  var f = false; 
   for ( var i = 0; i < nodes.length; i++ )
   {
     var node = nodes[i];
     if ( node.tagName == 'TR' && node.DecirForumID )
     {
+      if ( !f )
+      {
+        // this is the first row
+        // get the top and add a new threshold entry for the border-top exception
+        var t = $(node).Top();
+        threshold[0] = {
+          top: t,
+          realid: node.DecirForumID,
+          node: node
+        }
+      }
+      f = true;
       // This is a row with a forum in it - add to the threshold list.
       var t = $(node).Top();
       var h = $(node).Height();
@@ -50,7 +64,41 @@ function decir_admin_dragforum_onmouse(e)
   if ( !next_threshold )
     next_threshold = -1;
   // window.console.debug('current ', current_threshold, ' next ', next_threshold);
-  if ( mouseY < current_threshold )
+  reorder_state.topped = false;
+  if ( mouseY <= threshold[0].top )
+  {
+    reorder_state.over.style.borderBottom = null;
+    reorder_state.over.style.borderTop = null;
+    
+    var next_tr = threshold[0].node;
+    
+    // find the next_td
+    var i = 0;
+    var next_td;
+    while ( true )
+    {
+      next_td = next_tr.childNodes[i];
+      if ( i >= 100 )
+        break;
+      if ( !next_td )
+      {
+        i++;
+        continue;
+      }
+      if ( next_td.tagName == 'TD' || i == 100 )
+        break;
+      i++;
+    }
+    if ( !next_td )
+      return false;
+    if ( next_td.tagName != 'TD' )
+      return false;
+    
+    reorder_state.over = next_td;
+    reorder_state.over.style.borderTop = '5px solid #000000';
+    reorder_state.topped = true;
+  }
+  else if ( mouseY < current_threshold )
   {
     var prev_tr = reorder_state.over.parentNode.previousSibling;
     if ( !prev_tr )
@@ -71,6 +119,7 @@ function decir_admin_dragforum_onmouse(e)
     if ( prev_td.tagName != 'TD' )
       return false;
     reorder_state.over.style.borderBottom = null;
+    reorder_state.over.style.borderTop = null;
     reorder_state.over = prev_td;
     reorder_state.over.style.borderBottom = '5px solid #000000';
   }
@@ -102,6 +151,7 @@ function decir_admin_dragforum_onmouse(e)
     if ( next_td.tagName != 'TD' )
       return false;
     reorder_state.over.style.borderBottom = null;
+    reorder_state.over.style.borderTop = null;
     reorder_state.over = next_td;
     reorder_state.over.style.borderBottom = '5px solid #000000';
   }
@@ -116,6 +166,7 @@ function decir_admin_dragforum_reset(e)
     forums[i].onmousedown = decir_admin_dragforum_start;
     forums[i].style.cursor = 'move';
     forums[i].style.borderBottom = null;
+    forums[i].style.borderTop = null;
   }
 }
 
@@ -131,7 +182,16 @@ function decir_admin_dragforum_close(e)
   
   // Move the row (or rather copy and delete)
   var newnode = reorder_state.obj.parentNode.cloneNode(true);
-  insertAfter(reorder_state.obj.parentNode.parentNode, newnode, reorder_state.over.parentNode);
+  if ( reorder_state.topped )
+  {
+    window.console.info('before');
+    reorder_state.obj.parentNode.parentNode.insertBefore(newnode, reorder_state.over.parentNode);
+  }
+  else
+  {
+    window.console.info('after');
+    insertAfter(reorder_state.obj.parentNode.parentNode, newnode, reorder_state.over.parentNode);
+  }
   reorder_state.obj.parentNode.parentNode.removeChild(reorder_state.obj.parentNode);
   
   // for some reason this needs to be called again in gecko (to reinit some values)
