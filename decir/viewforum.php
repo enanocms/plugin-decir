@@ -78,6 +78,8 @@ if ( $row = $db->fetchrow() )
     {
       if ( $num_replies < 0 )
         $num_replies = 0;
+      if ( $i == $db->numrows() && $i == 1 )
+        $num_replies++;
       if ( $last_row['topic_deleted'] == 1 )
       {
         $thread_link = '&lt;Deleted&gt;';

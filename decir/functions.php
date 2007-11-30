@@ -35,6 +35,16 @@ function decir_submit_post($topic_id, $post_subject, $post_text, &$post_id = fal
   $post_text = $db->escape($post_text);
   
   $post_subject = $db->escape($post_subject);
+  if ( empty($post_subject) )
+  {
+    $q = $db->sql_query('SELECT topic_title FROM '.table_prefix.'decir_topics WHERE topic_id = ' . $topic_id . ';');
+    if ( !$q )
+      $db->_die('Decir functions.php in decir_submit_post()');
+    if ( $db->numrows() < 1 )
+      return false;
+    list($post_subject) = $db->fetchrow_num();
+    $post_subject = 'Re: ' . $db->escape($post_subject);
+  }
   
   $q = $db->sql_query('INSERT INTO '.table_prefix."decir_posts(topic_id,poster_id,poster_name,post_subject,timestamp) VALUES($topic_id, $poster_id, '$poster_name', '$post_subject', $timestamp);");
   if ( !$q )
@@ -114,7 +124,7 @@ function decir_edit_post($post_id, $subject, $message, $reason)
   if ( !$q )
     $db->_die('Decir functions.php in decir_edit_post()');
 
-  $q = $db->sql_query('UPDATE '.table_prefix."decir_posts_text SET post_text='$post_text' WHERE post_id=$post_id;");
+  $q = $db->sql_query('UPDATE '.table_prefix."decir_posts_text SET post_text='$post_text',bbcode_uid='$bbcode_uid' WHERE post_id=$post_id;");
   if ( !$q )
     $db->_die('Decir functions.php in decir_edit_post()');
   

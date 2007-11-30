@@ -90,11 +90,13 @@ if ( isset($_GET['act']) && $_GET['act'] == 'post' )
     if ( sizeof($errors) < 1 )
     {
       // Collect other options
+      $post_text = trim(htmlspecialchars($_POST['post_text']));
+      $post_subject = trim(htmlspecialchars($_POST['subject']));
       
       // Submit post
       if ( $parms['mode'] == 'reply' || $parms['mode'] == 'quote' )
       {
-        $result = decir_submit_post($parms['topic_in'], $_POST['subject'], $_POST['post_text'], $post_id);
+        $result = decir_submit_post($parms['topic_in'], $post_subject, $post_text, $post_id);
         if ( $result )
         {
           // update forum stats
@@ -110,7 +112,7 @@ if ( isset($_GET['act']) && $_GET['act'] == 'post' )
       }
       else if ( $parms['mode'] == 'topic' )
       {
-        $result = decir_submit_topic($parms['forum_id'], $_POST['subject'], $_POST['post_text'], $topic_id, $post_id);
+        $result = decir_submit_topic($parms['forum_id'], $post_subject, $post_text, $topic_id, $post_id);
         if ( $result )
         {
           // update forum stats

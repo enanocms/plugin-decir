@@ -34,6 +34,7 @@ $plugins->attachHook('base_classes_initted', '
   ');
 
 require( DECIR_ROOT . '/admincp/admin_base.php' );
+require( DECIR_ROOT . '/search.php' );
 
 function decir_early_init(&$paths, &$session)
 {
